@@ -310,27 +310,21 @@ func (f *fieldVal) Normalize() *fieldVal {
 	// between the branches.  Also note that 'm' will be zero when neither
 	// of the aforementioned conditions are true and the value will not be
 	// changed when 'm' is zero.
-	m = 1
-	if t9 == fieldMSBMask {
-		m &= 1
-	} else {
-		m &= 0
-	}
-	if t2&t3&t4&t5&t6&t7&t8 == fieldBaseMask {
-		m &= 1
-	} else {
-		m &= 0
-	}
-	if ((t0+977)>>fieldBase + t1 + 64) > fieldBaseMask {
-		m &= 1
-	} else {
-		m &= 0
-	}
-	if t9>>fieldMSBBits != 0 {
-		m |= 1
-	} else {
-		m |= 0
-	}
+
+
+	// This is the canonical implementation
+	//m = EqUint32(uint32(0), (t9 - fieldMSBMask) | ((t2&t3&t4&t5&t6&t7&t8) - fieldBaseMask))
+	//m &= LessThanUint32(fieldBaseMask, (t0+977)>>fieldBase + t1 + 64)
+	//m |= 1-EqUint32(uint32(0), t9>>fieldMSBBits)
+
+	// This is a slightly faster implementation that avoids shifting and casting in the middle of the calculation
+	diff := int64( (t9 - fieldMSBMask) | ((t2&t3&t4&t5&t6&t7&t8) - fieldBaseMask) )
+	m64 := diff ^ (diff - 1)
+	m64 &= int64(fieldBaseMask) - int64(((t0+977)>>fieldBase + t1 + 64))
+	val := int64(t9>>fieldMSBBits)
+	m64 |= (val | (-val))
+	m = uint32((m64 >> 63) & 1)
+
 	t0 = t0 + m*977
 	t1 = (t0 >> fieldBase) + t1 + (m << 6)
 	t0 = t0 & fieldBaseMask
