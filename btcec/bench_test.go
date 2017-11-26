@@ -115,8 +115,19 @@ func BenchmarkSigVerify(b *testing.B) {
 // BenchmarkFieldNormalize benchmarks how long it takes the internal field
 // to perform normalization (which includes modular reduction).
 func BenchmarkFieldNormalize(b *testing.B) {
-	// The normalize function is constant time so default value is fine.
+	// The default value.
 	f := new(fieldVal)
+	for i := 0; i < b.N; i++ {
+		f.Normalize()
+	}
+}
+
+// BenchmarkFieldNormalizeDifficultBranch demonstrates the timing difference due to branch prediction in field.Normalize().
+// On my machine this takes 19.2 ns/op whereas the default value takes 14.1 ns/op
+func BenchmarkFieldNormalizeDifficultBranch(b *testing.B) {
+	// A more difficult value
+	f := new(fieldVal)
+	f.n = [10]uint32{0x148f6, 0x3ffffc0, 0x3ffffff, 0x3ffffff, 0x3ffffff, 0x3ffffff, 0x3ffffff, 0x3ffffff, 0x3ffffff, 0x000007}
 	for i := 0; i < b.N; i++ {
 		f.Normalize()
 	}
