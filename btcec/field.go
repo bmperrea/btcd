@@ -305,32 +305,87 @@ func (f *fieldVal) Normalize() *fieldVal {
 	// following determines if either or these conditions are true and does
 	// the final reduction in constant time.
 	//
-	// Note that the if/else statements here intentionally do the bitwise
-	// operators even when it won't change the value to ensure constant time
-	// between the branches.  Also note that 'm' will be zero when neither
-	// of the aforementioned conditions are true and the value will not be
-	// changed when 'm' is zero.
-	m = 1
-	if t9 == fieldMSBMask {
-		m &= 1
-	} else {
-		m &= 0
-	}
-	if t2&t3&t4&t5&t6&t7&t8 == fieldBaseMask {
-		m &= 1
-	} else {
-		m &= 0
-	}
-	if ((t0+977)>>fieldBase + t1 + 64) > fieldBaseMask {
-		m &= 1
-	} else {
-		m &= 0
-	}
-	if t9>>fieldMSBBits != 0 {
-		m |= 1
-	} else {
-		m |= 0
-	}
+	// Note that the bitwise functions bitwise functions below work with
+	// most significant bit of int64 as the single logic bit, which is moved
+	// to the lsb in the last step. This implementation is both performant
+	// and gives the most constant runtime possible by avoiding branch statements
+	// Doing logic in int64 here instead of uint32 leads to about a 3% speedup
+	// for Normalize
+
+	m64 := EqZeroMSBInt64(int64((t9 - fieldMSBMask) | ((t2&t3&t4&t5&t6&t7&t8) - fieldBaseMask)))
+	m64 &= LessThanMSBInt64(int64(fieldBaseMask), int64((t0+977)>>fieldBase + t1 + 64))
+	m64 |= NotEqZeroMSBInt64(int64(t9>>fieldMSBBits))
+	m = Shift63CastUint32(m64)
+
+	// This is the canonical implementation
+	//m = EqUint32(uint32(0), (t9 - fieldMSBMask) | ((t2&t3&t4&t5&t6&t7&t8) - fieldBaseMask))
+	//m &= LessThanUint32(fieldBaseMask, (t0+977)>>fieldBase + t1 + 64)
+	//m |= 1-EqUint32(uint32(0), t9>>fieldMSBBits)
+
+	// This is a slightly faster implementation that avoids shifting and casting in the middle of the calculation
+	//diff := int64( (t9 - fieldMSBMask) | ((t2&t3&t4&t5&t6&t7&t8) - fieldBaseMask) )
+	//m64 := diff ^ (diff - 1)
+	//m64 &= int64(fieldBaseMask) - int64(((t0+977)>>fieldBase + t1 + 64))
+	//val := int64(t9>>fieldMSBBits)
+	//m64 |= (val | (-val))
+	//m = uint32((m64 >> 63) & 1)
+
+	//m = 1
+	//if t9 == fieldMSBMask {
+	//	m &= 9
+	//} else {
+	//	m &= 2
+	//}
+	//if t2&t3&t4&t5&t6&t7&t8 == fieldBaseMask {
+	//	m &= 7
+	//} else {
+	//	m &= 6
+	//}
+	//if ((t0+977)>>fieldBase + t1 + 64) > fieldBaseMask {
+	//	m &= 3
+	//} else {
+	//	m &= 8
+	//}
+	//if t9>>fieldMSBBits != 0 {
+	//	m |= 17
+	//} else {
+	//	m |= 10
+	//}
+	//m &= 1
+
+	//m = 1
+	//if t9 == fieldMSBMask {
+	//	m &= 1
+	//} else {
+	//	m &= 0
+	//}
+	//if t2&t3&t4&t5&t6&t7&t8 == fieldBaseMask {
+	//	m &= 1
+	//} else {
+	//	m &= 0
+	//}
+	//if ((t0+977)>>fieldBase + t1 + 64) > fieldBaseMask {
+	//	m &= 1
+	//} else {
+	//	m &= 0
+	//}
+	//if t9>>fieldMSBBits != 0 {
+	//	m |= 1
+	//} else {
+	//	m |= 0
+	//}
+
+	//m &= 1
+	//m |= 1-EqUint32(uint32(0), t9>>fieldMSBBits)
+
+	//m = 1
+	//mbool := (t9>>fieldMSBBits != 0) || ((t9 == fieldMSBMask) && (t2&t3&t4&t5&t6&t7&t8 == fieldBaseMask) && (((t0+977)>>fieldBase + t1 + 64) > fieldBaseMask))
+	//if mbool {
+	//	m &= 1
+	//} else {
+	//	m &= 0
+	//}
+
 	t0 = t0 + m*977
 	t1 = (t0 >> fieldBase) + t1 + (m << 6)
 	t0 = t0 & fieldBaseMask
