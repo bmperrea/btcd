@@ -10,9 +10,9 @@ func TestLessThanUint32(t *testing.T) {
 	}{
 		{0, 1, 1},
 		{2, 2, 0},
-		{1 << 31, 1 << 31, 0},
-		{17, 1 << 31, 1},
-		{1 << 31, 0, 0},
+		{1 << 30, 1 << 30, 0},
+		{17, 1 << 30, 1},
+		{1 << 30, 0, 0},
 	}
 
 	t.Logf("Running %d tests", len(tests))
@@ -33,7 +33,7 @@ func TestIsZeroUint32(t *testing.T) {
 	}{
 		{1, 0},
 		{0, 1},
-		{^uint32(0), 0},
+		{1 << 30, 0},
 	}
 
 	t.Logf("Running %d tests", len(tests))
@@ -54,7 +54,7 @@ func TestNotZeroUint32(t *testing.T) {
 	}{
 		{1, 1},
 		{0, 0},
-		{^uint32(0), 1},
+		{1 << 30, 1},
 	}
 
 	t.Logf("Running %d tests", len(tests))

@@ -13,21 +13,24 @@ package btcec
 // These functions are based on the sample implementation in golang.org/src/crypto/subtle/constant_time.go
 // Here we have refactored these functions for uint32 arithmetic and to avoid extra shifts and casts
 
+// Note - these use the sign bit of int32 internally. For that reason all of the inputs need to be
+// less than 2^31 to avoid overflowing int32. This is fine for field.go where all uint32 values are <= 2^26
+
 // LessThanUint32 returns 1 if x < y and 0 otherwise.
 // It works by checking the most significant bit, and then testing the rest of the bits by casting to int32
 func LessThanUint32(x, y uint32) uint32 {
-	diff := int64(x) - int64(y)
-	return uint32((diff >> 63) & 1)
+	diff := int32(x) - int32(y)
+	return uint32((diff >> 31) & 1)
 }
 
 // IsZeroUint32 returns 1 if x == y and 0 otherwise.
 func IsZeroUint32(x uint32) uint32 {
-	x64 := int64(x)
-	return uint32((((x64 - 1) ^ x64) >> 63) & 1)
+	x32 := int32(x)
+	return uint32((((x32 - 1) ^ x32) >> 31) & 1)
 }
 
 // NotZeroUint32 returns 1 if x != y and 0 otherwise.
 func NotZeroUint32(x uint32) uint32 {
-	x64 := int64(x)
-	return uint32((((-x64) | x64) >> 63) & 1)
+	x32 := int32(x)
+	return uint32((((-x32) | x32) >> 31) & 1)
 }
