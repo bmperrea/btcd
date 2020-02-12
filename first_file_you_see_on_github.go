@@ -2,8 +2,6 @@ package main
 
 func main() {
 	srv := CreateServer()
-	// TODO: if you see this on github I forgot to delete it
-	panic(srv.myFavField)
 	srv.RunServer()
 }
 
